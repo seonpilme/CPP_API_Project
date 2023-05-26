@@ -1,67 +1,159 @@
-#include <iostream>
-#include <string>
-#include <curl/curl.h>
-#include "rapidjson/document.h"
-#include <rapidjson/writer.h>
-#include <rapidjson/stringbuffer.h>
+#include "Search_Function.h"
 
 using namespace std;
+string serviceKey = "Y7vOpcmZVqbyz7bUW4lvvkENbLBlu1kZDEoYBqLLjL9HgvguMaugkJZKxFXuJRcjjFSKEq7bMce9pAzQoUKJrQ%3D%3D";
+// ¼­ºñ½º Å° Á¤ÀÇ
 
-void FindAndPrintAllCnt(const rapidjson::Value& value) {
+
+string API_select(int select) {
+    string API;
+
+    if (select == 1) {
+        API = "getRealEstateTradingCount?"; // ´Ü¼ø ºÎµ¿»ê °Å·¡ °Ç¼ö Á¶È¸
+    }
+    else if (select == 2) {
+        API = "getRealEstateTradingCountBuildType?"; // °Ç¹°À¯Çüº° ºÎµ¿»ê °Å·¡ °Ç¼ö
+    }
+    else if (select == 3) {
+        API = "getRealEstateTradingCountForeigner?"; // ¿Ü±¹ÀÎ ºÎµ¿»ê °Å·¡ °Ç¼ö
+    }
+
+    return API;
+}
+
+// Åë½Å URL ¸¸µé±â
+
+// URL : ¿äÃ» API + Á¶»ç ½ÃÀÛ ÀÏÀÚ + Á¶»ç ³¡ ÀÏÀÚ + Áö¿ªÄÚµå + °Å·¡ À¯Çü
+string MakeURL_DATA(int API_NUM, int DATE, int END_DATE, int REGION_CD, string DEAL_OBJ) {
+    string URL;
+    URL += "https://api.odcloud.kr/api/RealEstateTradingSvc/v1/";
+    // API Select ÇÔ¼ö ¸¸µé¾î ³Ö±â
+    URL += API_select(API_NUM);
+    URL += "page=1&perPage=1&cond%5BRESEARCH_DATE%3A%3ALTE%5D=";
+    URL += to_string(DATE);
+    URL += "&cond%5BRESEARCH_DATE%3A%3AGTE%5D=";
+    URL += to_string(END_DATE);
+    URL += "&cond%5BREGION_CD%3A%3AEQ%5D=";
+    URL += to_string(REGION_CD);
+    URL += "&cond%5BDEAL_OBJ%3A%3AEQ%5D=";
+    URL += DEAL_OBJ;
+    URL += "&serviceKey=";
+    URL += serviceKey;
+
+
+    // ¿Ï¼ºµÈ URL Ãâ·Â
+    //    cout << URL << endl;
+    return URL;
+}
+
+
+
+// »ç¿ëÀÚ°¡ ¿øÇÏ´Â Á¤º¸¸¸ True
+// »ðÀÔ ÇÔ¼ö Á¤ÀÇ( ÆÄ¶ó¹ÌÅÍ Json value )
+Element Insert_Value(const rapidjson::Value& value, Element element) {
+    if (value.IsObject()) {
+        if (value.HasMember("ALL_CNT")) {
+            element.ALL_CNT = value["ALL_CNT"].GetInt();
+            element.booltype.ALL_CNT = true;
+        }
+        if (value.HasMember("DEAL_OBJ")) {
+            element.DEAL_OBJ = value["DEAL_OBJ"].GetString();
+            element.booltype.DEAL_OBJ = true;
+        }
+        if (value.HasMember("REGION_CD")) {
+            element.REGION_CD = value["REGION_CD"].GetString();
+            element.booltype.REGION_CD = true;
+        }
+        if (value.HasMember("REGION_NM")) {
+            element.REGION_NM = value["REGION_NM"].GetString();
+            element.booltype.REGION_NM = true;
+        }
+        if (value.HasMember("RESEARCH_DATE")) {
+            element.RESEARCH_DATE = value["RESEARCH_DATE"].GetString();
+            element.booltype.RESEARCH_DATE = true;
+        }
+    }
+    else if (value.IsArray()) {
+        for (rapidjson::SizeType i = 0; i < value.Size(); ++i) {
+            FindAndPrintAllCnt(value[i], element);
+
+        }
+    }
+
+    return element;
+}
+
+// »ç¿ëÀÚ°¡ ¿øÇÏ´Â Á¤º¸¸¦ Ãâ·ÂÇÏ±â À§ÇØ True / False¸¦ Á¤ÀÇÇÏ´Â ÇÔ¼ö
+Element select_info(Element element) {
+    vector<Element> elements;
+
+    // ÄÁÅ×ÀÌ³Ê¿¡ Àü´Þ¹ÞÀº ¿ä¼Ò Àü´Þ
+    elements.push_back(Element(element));
+
+    for (const auto& element : elements) {
+  /*      cout << element.ALL_CNT << endl;
+        cout << element.DEAL_OBJ << endl;
+        cout << element.REGION_CD << endl;
+        cout << element.REGION_NM << endl;
+        cout << element.RESEARCH_DATE << endl;*/
+
+        if (element.booltype.ALL_CNT != 0) {
+            cout << "ALL_CNT: " << element.ALL_CNT << endl;
+        }
+        if (element.booltype.DEAL_OBJ != 0) {
+            cout << "DEAL_OBJ: " << element.DEAL_OBJ << endl;
+        }
+        if (element.booltype.REGION_CD != 0) {
+            cout << "REGION_CD: " << element.REGION_CD << endl;
+        }
+        if (element.booltype.REGION_NM != 0) {
+            cout << "REGION_NM: " << element.REGION_NM << endl;
+        }
+        if (element.booltype.RESEARCH_DATE != 0) {
+            cout << "RESEARCH_DATE: " << element.RESEARCH_DATE << endl;
+        }
+    }
+
+    return element;
+}
+
+// »ðÀÔÇÔ¼ö -> return element -> Ãâ·ÂÇÔ¼ö¿¡¼­ Á¶°Ç(»ç¿ëÀÚ°¡ ¹«¾ùÀ» ¿øÇÏ´Â°¡)¿¡ µû¸¥ Ãâ·Â Á¤º¸ Á¦°ø
+// Ãâ·Â ÇÔ¼ö Á¤ÀÇ ( ÆÄ¶ó¹ÌÅÍ element )
+void FindAndPrintAllCnt(const rapidjson::Value& value, Element element) {
     if (value.IsObject()) {
         for (rapidjson::Value::ConstMemberIterator itr = value.MemberBegin(); itr != value.MemberEnd(); ++itr) {
             if (itr->name == "ALL_CNT") {
-                std::cout << "ALL_CNT: " << itr->value.GetInt() << std::endl;
-                return; // ì›í•˜ëŠ” ê°’ì´ ì¶œë ¥ë˜ë©´ í•¨ìˆ˜ ì¢…ë£Œ
+                element.ALL_CNT = itr->value.GetInt();
+                cout << "ALL_CNT : " << element.ALL_CNT << endl;
             }
-            FindAndPrintAllCnt(itr->value);
-        }
-    } else if (value.IsArray()) {
-        for (rapidjson::SizeType i = 0; i < value.Size(); ++i) {
-            FindAndPrintAllCnt(value[i]);
+            if (itr->name == "REGION_CD") {
+                element.REGION_CD = itr->value.GetString();
+                cout << "REGION_CD : " << element.REGION_CD << endl;
+            }
+            if (itr->name == "RESEARCH_DATE") {
+                element.RESEARCH_DATE = itr->value.GetString();
+                cout << "RESEARCH: " << element.RESEARCH_DATE << endl;
+            }
+            FindAndPrintAllCnt(itr->value, element);
+
+            // Json KeyÈ®ÀÎ
+            /*cout << "itr->name:" << itr->name.GetString() << endl*/;
+
         }
     }
+    else if (value.IsArray()) {
+        for (rapidjson::SizeType i = 0; i < value.Size(); ++i) {
+            FindAndPrintAllCnt(value[i], element);
+        }
+    }
+
 }
 
-void FindAndPrintREGION_NM(const rapidjson::Value& value) {
-    if (value.IsObject()) {
-        for (rapidjson::Value::ConstMemberIterator itr = value.MemberBegin(); itr != value.MemberEnd(); ++itr) {
-            if (itr->name == "REGION_NM") {
-                std::cout << "REGION_NM: " << itr->value.GetInt() << std::endl;
-                return; // ì›í•˜ëŠ” ê°’ì´ ì¶œë ¥ë˜ë©´ í•¨ìˆ˜ ì¢…ë£Œ
-            }
-            FindAndPrintAllCnt(itr->value);
-        }
-    } else if (value.IsArray()) {
-        for (rapidjson::SizeType i = 0; i < value.Size(); ++i) {
-            FindAndPrintAllCnt(value[i]);
-        }
-    }
-}
-
-void FindAndPrintRESEARCH_DATA(const rapidjson::Value& value) {
-    if (value.IsObject()) {
-        for (rapidjson::Value::ConstMemberIterator itr = value.MemberBegin(); itr != value.MemberEnd(); ++itr) {
-            if (itr->name == "RESEARCH_DATA") {
-                std::cout << "RESEARCH_DATA: " << itr->value.GetInt() << std::endl;
-                return; // ì›í•˜ëŠ” ê°’ì´ ì¶œë ¥ë˜ë©´ í•¨ìˆ˜ ì¢…ë£Œ
-            }
-            FindAndPrintAllCnt(itr->value);
-        }
-    } else if (value.IsArray()) {
-        for (rapidjson::SizeType i = 0; i < value.Size(); ++i) {
-            FindAndPrintAllCnt(value[i]);
-        }
-    }
-}
 
 // curl write callback function
-size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
+size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata) {
     size_t realsize = size * nmemb;
-    std::string *str = (std::string *)userdata;
+    std::string* str = (std::string*)userdata;
     str->append(ptr, realsize);
     return realsize;
 }
-
-
-
